@@ -1,32 +1,34 @@
-/*
- * BullsAndCows.cpp
- *
- *  Created on: 9.04.2015 г.
- *      Author: Erol Hadzhi - 81201
- */
+//============================================================================
+// Name        : BullsAndCows.cpp
+// Author      : Erol Hadzhi 81201
+// Date        : 11.05.15
+//============================================================================
 
 #include "BullsAndCows.h"
-#include <iostream>
-using namespace std;
 #include <stdexcept>
 #include <stdlib.h>
 #include <ctime>
+#include <stdio.h>
+#include <string.h>
+#include <iostream>
+using namespace std;
 
-
-void BullsAndCows::setContainerSize(int size)
+void BullsAndCows::init()  // main use to assign null to the pointers
 {
-	if(size >=2 && size<=4)
-		size_of_container=size;
-	else
-		throw invalid_argument("Size must be 2,3 or 4");
+	sizeOfContainer = 0;
+	numbersContainer = 0;
+	numberOfGuesses = 0;
+	message = 0;
+	win = false;
 }
-bool isContainerComptable(int* container,int size_of_container)  // checks if an array's first cell!=0 %% all cells are different
+
+bool isContainerComptable(int* container,int sizeOfContainer)  // checks if an array's first cell!=0 && all cells are different
 {
 	bool flag=0;
 	if( *(container)>=1 && *(container)<=9)
 	{
 		flag=1;
-		for(int i=1;i<size_of_container;i++)
+		for(int i=1;i<sizeOfContainer;i++)
 		{
 			for(int j=(i-1);j>=0;j--)
 			{
@@ -37,113 +39,138 @@ bool isContainerComptable(int* container,int size_of_container)  // checks if an
 	}
 	return flag;
 }
-void BullsAndCows::setContainer(int* container)
-{
-	if( isContainerComptable(container,size_of_container) )
-	{
-		delete[] numbers_container;
-		numbers_container = new int[size_of_container];
-		for(int i=0;i<size_of_container;i++)
-		{
-			*(numbers_container+i)=*(container+i);
-		}
-	}
-	else
-		throw invalid_argument("Not a comptable container");
-}
-void populate_container(int* container,int size)  //TODO fix !!!! populates container with random compatable data
+
+void populate_container(int* container,int size)
 {
 	while( !isContainerComptable(container,size) )
 	{
+		srand (time(NULL));
 		for(int i=0;i<size;i++)
-		{
-			*(container+i) = rand() %10;
-		}
+			*(container+i) = rand() % 10;
 	}
 }
 
 BullsAndCows::BullsAndCows(int size)
-: size_of_container(0),numbers_container(NULL),number_of_guesses(0)
 {
+	init();
 	setContainerSize(size);
 	int random_container[size];
 	populate_container(random_container,size);
 	setContainer(random_container);
+	message = new char[50];
+
 }
 
-BullsAndCows::BullsAndCows(int* container,int size=4)
-: size_of_container(0),numbers_container(NULL),number_of_guesses(0)
+BullsAndCows::BullsAndCows(int* container, int size)
 {
+	init();
 	setContainerSize(size);
 	setContainer(container);
+	setMessage(0,0);
 }
-
-BullsAndCows::BullsAndCows() : BullsAndCows(4)
-{}
 
 BullsAndCows::~BullsAndCows()
 {
-	delete[] numbers_container;
+	delete[] numbersContainer;
+	delete[] message;
+}
+
+void BullsAndCows::setContainerSize(int size)
+{
+	if(size >=2 && size<=4)
+		sizeOfContainer=size;
+	else
+		throw invalid_argument("Size must be 2,3 or 4");
+}
+
+void BullsAndCows::setContainer(int* container)
+{
+	if( isContainerComptable(container,sizeOfContainer) )
+		{
+			delete[] numbersContainer;
+			numbersContainer = new int[sizeOfContainer];
+			for(int i=0;i<sizeOfContainer;i++)
+			{
+				*(numbersContainer+i)=*(container+i);
+			}
+		}
+		else
+			throw invalid_argument("Not a comptable container");
+}
+
+void BullsAndCows::setMessage(int bulls, int cows)
+{
+	delete[] message;
+	if(bulls == 4)
+	{
+		win = true;
+		char msg[] = "Congratualtions! You made a right guess!";
+		message = new char[41];
+		strcpy(message,msg);
+	}
+	else
+	{
+		char msg[] = "Cows:x    Bulls:y";
+		*(msg + 5) = cows+48;
+		*(msg +16) = bulls+48;
+		message = new char[16];
+		strcpy(message,msg);
+	}
 }
 
 bool BullsAndCows::isInsideContainer(int digit)
 {
-	for(int i=0;i<size_of_container;i++)
+	for(int i=0;i<sizeOfContainer;i++)
 	{
-		if (digit==*(numbers_container+i) )
-		{
+		if( digit== *(numbersContainer+i) )
 			return 1;
-		}
 	}
 	return 0;
 }
 
-bool BullsAndCows::CowDigit(int* arr,int position,int value)
+bool BullsAndCows::CowElement(int position, int value)
 {
-	return (isInsideContainer(value) && (*(numbers_container+position) != value) );
+	return (isInsideContainer(value) && (*(numbersContainer+position) != value) );
 }
 
-bool BullsAndCows::BullDigit(int* arr,int position,int value)
+bool BullsAndCows::BullElement(int position, int value)
 {
-	return (isInsideContainer(value) && (*(numbers_container+position) == value) );
+	return (isInsideContainer(value) && (*(numbersContainer+position) == value) );
 }
 
-bool BullsAndCows::TryToGuess(int myGuess)
+void numberToContainer(int number,int* container,int containerSize)
 {
-	int myGuessContainer[size_of_container],cows=0,bulls=0;
-	bool flag=0;
-
 	int i;
-	i = (size_of_container-1);
-	while(myGuess!=0)
+	i = (containerSize-1);
+	while(number != 0)
 	{
-		*(myGuessContainer+i)=(myGuess%10);
+		*(container+i)=(number%10);
 		i--;
-		myGuess/=10;
+		number/=10;
 	}
+}
 
-	if( isContainerComptable(myGuessContainer,size_of_container))
-	{
-		for(int i=0;i<size_of_container;i++)
+char* BullsAndCows::TryToGuess(int myGuess)
+{
+	int myGuessContainer[sizeOfContainer],cows=0,bulls=0;
+
+		numberToContainer(myGuess,myGuessContainer,sizeOfContainer);
+
+		if( isContainerComptable(myGuessContainer,sizeOfContainer))
 		{
-			if(BullDigit(myGuessContainer,i,*(myGuessContainer+i)) )
-				bulls++;
-			if(CowDigit(myGuessContainer,i,*(myGuessContainer+i)) )
-				cows++;
-		}
-		if(bulls==4)
-		{
-			cout<<"Congratualtions! You made a right guess!"<<endl;
-			flag=1;
+			for(int i=0;i<sizeOfContainer;i++)
+			{
+				if(BullElement(i,*(myGuessContainer+i)) )
+					bulls++;
+				if(CowElement(i,*(myGuessContainer+i)) )
+					cows++;
+			}
 		}
 		else
-		{
-			cout<<"Cows:"<<cows<<"    Bulls:"<<bulls<<endl;
-		}
-	}
-	return flag;
+			throw invalid_argument("Not a comptable container");
+		setMessage(bulls,cows);
+		return message;
 }
-
 
 void BullsAndCows::Start()
 {
@@ -151,7 +178,7 @@ void BullsAndCows::Start()
 	do
 	{
 		cout<<"Enter your guess : "; cin>>myGuess;
+		cout<<TryToGuess(myGuess)<<endl;
 	}
-	while( !TryToGuess(myGuess) );
+	while( win == 0 );
 }
-
